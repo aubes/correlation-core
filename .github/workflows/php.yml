@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          -   php-version: '8.2'
+              symfony-version: '^6.4'
+              composer-flags: '--prefer-lowest'
+          -   php-version: '8.3'
+              symfony-version: '^7.4'
+          -   php-version: '8.4'
+              symfony-version: '^8.0'
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP version
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v4
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ matrix.php-version }}-symfony-${{ matrix.symfony-version }}-${{ hashFiles('**/composer.json') }}
+        restore-keys: |
+          ${{ runner.os }}-php-${{ matrix.php-version }}-symfony-${{ matrix.symfony-version }}-
+
+    - name: Install dependencies
+      run: |
+        composer update --prefer-dist --no-progress ${{ matrix.composer-flags }} \
+          --with "symfony/http-kernel:${{ matrix.symfony-version }}" \
+          --with "symfony/uid:${{ matrix.symfony-version }}"
+
+    - name: Security audit
+      run: composer audit
+
+    - name: Run static analysis
+      run: |
+        vendor/bin/php-cs-fixer fix --allow-risky=yes --config=.php-cs-fixer.php --dry-run --verbose
+        vendor/bin/phpstan analyse
+
+    - name: Run test suite
+      run: composer run-script test
