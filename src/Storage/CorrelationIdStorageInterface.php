@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Aubes\CorrelationCore\Storage;
 
-use Aubes\CorrelationCore\CorrelationIdProviderInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 interface CorrelationIdStorageInterface extends CorrelationIdProviderInterface, ResetInterface

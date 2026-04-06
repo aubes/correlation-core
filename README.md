@@ -14,7 +14,7 @@ Core bundle for correlation ID management: storage, generator, and shared interf
 Read-only access to the current correlation ID. Inject this in your services when you only need to read the ID.
 
 ```php
-use Aubes\CorrelationCore\CorrelationIdProviderInterface;
+use Aubes\CorrelationCore\Storage\CorrelationIdProviderInterface;
 
 class MyService
 {

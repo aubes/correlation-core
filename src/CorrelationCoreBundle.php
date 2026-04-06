@@ -8,6 +8,7 @@ use Aubes\CorrelationCore\EventListener\CorrelationConsoleListener;
 use Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface;
 use Aubes\CorrelationCore\Generator\UuidCorrelationIdGenerator;
 use Aubes\CorrelationCore\Generator\UuidVersion;
+use Aubes\CorrelationCore\Storage\CorrelationIdProviderInterface;
 use Aubes\CorrelationCore\Storage\CorrelationIdStorage;
 use Aubes\CorrelationCore\Storage\CorrelationIdStorageInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;

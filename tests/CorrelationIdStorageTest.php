@@ -7,10 +7,12 @@ namespace Aubes\CorrelationCore\Tests;
 use Aubes\CorrelationCore\Exception\InvalidCorrelationIdException;
 use Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface;
 use Aubes\CorrelationCore\Storage\CorrelationIdStorage;
+use Aubes\CorrelationCore\Validation\CorrelationIdValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(CorrelationIdStorage::class)]
+#[CoversClass(CorrelationIdValidator::class)]
 #[CoversClass(InvalidCorrelationIdException::class)]
 class CorrelationIdStorageTest extends TestCase
 {
@@ -95,7 +97,9 @@ class CorrelationIdStorageTest extends TestCase
         yield 'carriage return' => ["abc\r123"];
         yield 'null byte' => ["abc\x00123"];
         yield 'tab' => ["abc\t123"];
+        yield 'space' => ['abc 123'];
         yield 'DEL character' => ["abc\x7f123"];
+        yield 'high ASCII' => ["abc\x80"];
         yield 'exceeds 255 chars' => [\str_repeat('a', 256)];
     }
 
