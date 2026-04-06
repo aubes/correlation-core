@@ -55,7 +55,7 @@ One implementation is provided:
 ## Custom generator
 
 ```php
-use Aubes\CorrelationCore\CorrelationIdGeneratorInterface;
+use Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface;
 
 class MyGenerator implements CorrelationIdGeneratorInterface
 {
@@ -67,14 +67,30 @@ class MyGenerator implements CorrelationIdGeneratorInterface
 ```
 
 ```yaml
-# config/packages/correlation.yaml
-correlation:
+# config/packages/correlation_core.yaml
+correlation_core:
     generator: App\MyGenerator
 ```
 
+## Console commands
+
+A correlation ID is generated automatically at the start of every console command and cleared when it terminates. No configuration required.
+
+### `--correlation-id` option
+
+Any command can receive a specific correlation ID via the global `--correlation-id` option:
+
+```bash
+php bin/console app:process-orders --correlation-id=01JQWXYZ...
+```
+
+If provided, the value is validated (printable ASCII, max 255 chars) before being stored. If omitted, a UUID v7 is generated.
+
 ## Worker / long-running processes
 
-`CorrelationIdStorage` implements Symfony's `ResetInterface`. The kernel calls `reset()` automatically between requests (FrankenPHP, RoadRunner, Messenger workers), ensuring the ID from one context never leaks into the next.
+`CorrelationIdStorage` implements Symfony's `ResetInterface`. The kernel calls `reset()` automatically between HTTP requests (FrankenPHP), ensuring the ID from one context never leaks into the next.
+
+For console workers (Messenger consumers), the console listener resets the ID after each command terminates - the correlation ID from one job never leaks into the next.
 
 ## License
 

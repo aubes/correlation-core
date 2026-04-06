@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Aubes\CorrelationCore\Tests;
 
+use Aubes\CorrelationCore\Exception\InvalidCorrelationIdException;
 use Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface;
 use Aubes\CorrelationCore\Storage\CorrelationIdStorage;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(CorrelationIdStorage::class)]
+#[CoversClass(InvalidCorrelationIdException::class)]
 class CorrelationIdStorageTest extends TestCase
 {
     private CorrelationIdStorage $storage;
@@ -77,10 +78,10 @@ class CorrelationIdStorageTest extends TestCase
         self::assertSame('existing-id', $result);
     }
 
-    #[DataProvider('invalidCorrelationIdProvider')]
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidCorrelationIdProvider')]
     public function testSetRejectsInvalidCorrelationId(string $value): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidCorrelationIdException::class);
         $this->storage->set($value);
     }
 
@@ -95,7 +96,7 @@ class CorrelationIdStorageTest extends TestCase
         yield 'null byte' => ["abc\x00123"];
         yield 'tab' => ["abc\t123"];
         yield 'DEL character' => ["abc\x7f123"];
-        yield 'exceeds 255 chars' => [str_repeat('a', 256)];
+        yield 'exceeds 255 chars' => [\str_repeat('a', 256)];
     }
 
     public function testSetAcceptsValidCorrelationId(): void
@@ -107,7 +108,7 @@ class CorrelationIdStorageTest extends TestCase
 
     public function testSetAcceptsMaxLengthCorrelationId(): void
     {
-        $id = str_repeat('a', 255);
+        $id = \str_repeat('a', 255);
         $this->storage->set($id);
 
         self::assertSame($id, $this->storage->get());

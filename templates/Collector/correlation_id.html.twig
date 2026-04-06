@@ -1,0 +1,76 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% set icon %}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <line x1="10"  y1="7.5"  x2="10" y2="3"  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="11.9" y1="11.6" x2="16" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="8.1"  y1="11.6" x2="4"  y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="10" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="10" cy="3"  r="1.8" fill="currentColor"/>
+            <circle cx="16" cy="15" r="1.8" fill="currentColor"/>
+            <circle cx="4"  cy="15" r="1.8" fill="currentColor"/>
+        </svg>
+        <span class="sf-toolbar-value">{{ collector.correlationId ?? 'n/a' }}</span>
+    {% endset %}
+
+    {% set text %}
+        <div class="sf-toolbar-info-piece">
+            <b>Correlation ID</b>
+            <span>{{ collector.correlationId ?? 'n/a' }}</span>
+        </div>
+        <div class="sf-toolbar-info-piece">
+            <b>Source</b>
+            <span>{{ collector.source ?? 'n/a' }}</span>
+        </div>
+    {% endset %}
+
+    {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: profiler_url }) }}
+{% endblock %}
+
+{% block menu %}
+    <span class="label">
+        <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <line x1="10"   y1="7.5"  x2="10" y2="3"  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="11.9" y1="11.6" x2="16" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="8.1"  y1="11.6" x2="4"  y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="10" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="10" cy="3"  r="1.8" fill="currentColor"/>
+                <circle cx="16" cy="15" r="1.8" fill="currentColor"/>
+                <circle cx="4"  cy="15" r="1.8" fill="currentColor"/>
+            </svg>
+        </span>
+        <strong>Correlation ID</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Correlation ID</h2>
+    <div class="metrics">
+        <div class="metric">
+            <span class="value">{{ collector.correlationId ?? 'n/a' }}</span>
+            <span class="label">Correlation ID</span>
+        </div>
+        <div class="metric">
+            <span class="value">{{ collector.source ?? 'n/a' }}</span>
+            <span class="label">Source</span>
+        </div>
+    </div>
+
+    <h2>Configuration</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Setting</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Generator</td>
+                <td><code>{{ collector.generatorClass }}</code></td>
+            </tr>
+        </tbody>
+    </table>
+{% endblock %}

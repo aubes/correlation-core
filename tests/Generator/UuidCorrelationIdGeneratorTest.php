@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(UuidCorrelationIdGenerator::class)]
+#[CoversClass(UuidVersion::class)]
 class UuidCorrelationIdGeneratorTest extends TestCase
 {
     private const UUID_V4_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i';

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Aubes\CorrelationCore;
 
+use Aubes\CorrelationCore\EventListener\CorrelationConsoleListener;
 use Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface;
 use Aubes\CorrelationCore\Generator\UuidCorrelationIdGenerator;
 use Aubes\CorrelationCore\Generator\UuidVersion;
 use Aubes\CorrelationCore\Storage\CorrelationIdStorage;
 use Aubes\CorrelationCore\Storage\CorrelationIdStorageInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -18,11 +20,6 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 final class CorrelationCoreBundle extends AbstractBundle
 {
-    public function getAlias(): string
-    {
-        return 'correlation';
-    }
-
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
@@ -67,5 +64,15 @@ final class CorrelationCoreBundle extends AbstractBundle
 
         $builder->setAlias(CorrelationIdProviderInterface::class, CorrelationIdStorage::class)
             ->setPublic(false);
+
+        $services->set(CorrelationConsoleListener::class)
+            ->arg('$storage', service(CorrelationIdStorageInterface::class))
+            ->tag('kernel.event_listener', ['event' => 'console.command', 'method' => 'onConsoleCommand', 'priority' => 100])
+            ->tag('kernel.event_listener', ['event' => 'console.terminate', 'method' => 'onConsoleTerminate', 'priority' => -100]);
+    }
+
+    public function build(ContainerBuilder $builder): void
+    {
+        $builder->addCompilerPass(new Debug\TraceableStorageCompilerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);
     }
 }
