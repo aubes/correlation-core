@@ -19,7 +19,6 @@ jobs:
         include:
           -   php-version: '8.2'
               symfony-version: '^6.4'
-              composer-flags: '--prefer-lowest'
           -   php-version: '8.3'
               symfony-version: '^7.4'
           -   php-version: '8.4'
@@ -48,7 +47,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        composer update --prefer-dist --no-progress ${{ matrix.composer-flags }} \
+        composer update --prefer-dist --no-progress \
           --with "symfony/http-kernel:${{ matrix.symfony-version }}" \
           --with "symfony/uid:${{ matrix.symfony-version }}"
 
