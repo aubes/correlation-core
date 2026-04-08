@@ -7,9 +7,8 @@ namespace Aubes\CorrelationCore\Storage;
 /**
  * Provides the current correlation ID.
  *
- * Implementations are responsible for returning safe values (visible ASCII only,
- * see Aubes\CorrelationCore\Validation\CorrelationIdValidator) to prevent log
- * injection.
+ * *Contract:** `get()` must return either `null` (no correlation ID available)
+ * or a string that satisfies {@see \Aubes\CorrelationCore\Validation\CorrelationIdValidator::isValid()}
  *
  * Returns null when no correlation ID is available.
  */

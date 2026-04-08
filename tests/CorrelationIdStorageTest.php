@@ -46,6 +46,14 @@ class CorrelationIdStorageTest extends TestCase
         self::assertSame('first', $this->storage->get());
     }
 
+    public function testSetValidatesEvenWhenAlreadyResolved(): void
+    {
+        $this->storage->set('first');
+
+        $this->expectException(InvalidCorrelationIdException::class);
+        $this->storage->set("invalid\nvalue");
+    }
+
     public function testResetClearsCorrelationId(): void
     {
         $this->storage->set('abc-123');

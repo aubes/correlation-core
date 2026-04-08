@@ -30,12 +30,24 @@ final class CorrelationIdValidator
     }
 
     /**
+     * Validates an HTTP header name against RFC 7230 token grammar.
+     *
+     * Used by HTTP-related bundles (correlation-http listener, correlation-http-client
+     * decorator) to ensure the configured or programmatically-passed header name
+     * cannot be used to inject CRLF sequences or invalid bytes into requests/responses.
+     */
+    public static function isValidHeaderName(string $name): bool
+    {
+        return $name !== '' && \preg_match('/^[!#$%&\'*+\-.^_`|~0-9A-Za-z]+$/', $name) === 1;
+    }
+
+    /**
      * @throws InvalidCorrelationIdException
      */
     public static function assert(string $value): string
     {
         if (!self::isValid($value)) {
-            $message = \sprintf('Correlation ID must be 1-255 visible ASCII characters (\\x21-\\x7E), got %d bytes with sha1 prefix "%s".', \strlen($value), \substr(\sha1($value), 0, 8));
+            $message = \sprintf('Correlation ID must be 1-255 visible ASCII characters (\\x21-\\x7E), got %d bytes with hash prefix "%s".', \strlen($value), \substr(\hash('sha256', $value), 0, 8));
 
             throw new InvalidCorrelationIdException($message);
         }

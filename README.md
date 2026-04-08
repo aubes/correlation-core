@@ -72,6 +72,32 @@ correlation_core:
     generator: App\MyGenerator
 ```
 
+> **Note**: the service referenced by `generator` **must** implement `Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface`.
+
+## Custom provider
+
+By default, `CorrelationIdProviderInterface` is served by the built-in `CorrelationIdStorage`. You can override it with any custom service:
+
+```php
+use Aubes\CorrelationCore\Storage\CorrelationIdProviderInterface;
+
+final class CustomTraceIdProvider implements CorrelationIdProviderInterface
+{
+    public function get(): ?string
+    {
+        return Span::getCurrent()->getContext()->getTraceId() ?: null;
+    }
+}
+```
+
+```yaml
+# config/packages/correlation_core.yaml
+correlation_core:
+    provider: App\CustomTraceIdProvider
+```
+
+> **Note**: the service referenced by `provider` **must** implement `Aubes\CorrelationCore\Storage\CorrelationIdProviderInterface`.
+
 ## Console commands
 
 A correlation ID is generated automatically at the start of every console command and cleared when it terminates. No configuration required.
@@ -88,7 +114,7 @@ If provided, the value is validated (printable ASCII, max 255 chars) before bein
 
 ## Worker / long-running processes
 
-`CorrelationIdStorage` implements Symfony's `ResetInterface`. The kernel calls `reset()` automatically between HTTP requests (FrankenPHP), ensuring the ID from one context never leaks into the next.
+`CorrelationIdStorage` implements `ResetInterface`, so the ID from one request never leaks into the next when running under a persistent runtime (FrankenPHP, RoadRunner).
 
 For console workers (Messenger consumers), the console listener resets the ID after each command terminates - the correlation ID from one job never leaks into the next.
 

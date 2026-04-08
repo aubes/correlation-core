@@ -16,6 +16,7 @@ final class CorrelationIdDataCollector extends DataCollector
         private readonly TraceableCorrelationIdStorage $storage,
         private readonly CorrelationIdGeneratorInterface $generator,
     ) {
+        $this->reset();
     }
 
     public function collect(Request $request, Response $response, ?\Throwable $exception = null): void
@@ -29,23 +30,17 @@ final class CorrelationIdDataCollector extends DataCollector
 
     public function getCorrelationId(): ?string
     {
-        $id = $this->data['correlation_id'] ?? null;
-
-        return \is_string($id) ? $id : null;
+        return $this->data()['correlation_id'];
     }
 
     public function getSource(): ?string
     {
-        $source = $this->data['source'] ?? null;
-
-        return \is_string($source) ? $source : null;
+        return $this->data()['source'];
     }
 
     public function getGeneratorClass(): string
     {
-        $class = $this->data['generator_class'] ?? '';
-
-        return \is_string($class) ? $class : '';
+        return $this->data()['generator_class'];
     }
 
     public function getName(): string
@@ -55,6 +50,21 @@ final class CorrelationIdDataCollector extends DataCollector
 
     public function reset(): void
     {
-        $this->data = [];
+        $this->data = [
+            'correlation_id' => null,
+            'source' => null,
+            'generator_class' => $this->generator::class,
+        ];
+    }
+
+    /**
+     * @return array{correlation_id: ?string, source: ?string, generator_class: string}
+     */
+    private function data(): array
+    {
+        /** @var array{correlation_id: ?string, source: ?string, generator_class: string} $data */
+        $data = $this->data;
+
+        return $data;
     }
 }

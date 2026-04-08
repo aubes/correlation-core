@@ -19,6 +19,10 @@ final class TraceableStorageCompilerPass implements CompilerPassInterface
             return;
         }
 
+        if ($container->hasParameter('kernel.debug') && $container->getParameter('kernel.debug') !== true) {
+            return;
+        }
+
         $container->register(TraceableCorrelationIdStorage::class, TraceableCorrelationIdStorage::class)
             ->setDecoratedService(CorrelationIdStorageInterface::class)
             ->setArgument('$decorated', new Reference('.inner'))

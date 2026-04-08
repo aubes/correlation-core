@@ -27,11 +27,8 @@ final class CorrelationCoreBundle extends AbstractBundle
             ->children()
                 ->scalarNode('generator')
                     ->defaultValue(UuidCorrelationIdGenerator::class)
-                    ->info('FQCN of the service implementing CorrelationIdGeneratorInterface. Defaults to UuidCorrelationIdGenerator.')
-                    ->validate()
-                        ->ifTrue(static fn (mixed $v): bool => !\is_string($v) || \preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff\\\\]*$/', $v) !== 1)
-                        ->thenInvalid('Invalid generator %s: must be a valid PHP class name implementing CorrelationIdGeneratorInterface.')
-                    ->end()
+                    ->cannotBeEmpty()
+                    ->info('Service ID (typically a FQCN) of a service implementing CorrelationIdGeneratorInterface. Defaults to UuidCorrelationIdGenerator.')
                 ->end()
                 ->integerNode('uuid_version')
                     ->defaultValue(7)
@@ -41,14 +38,21 @@ final class CorrelationCoreBundle extends AbstractBundle
                         ->thenInvalid('Invalid uuid_version %s: accepted values are 4, 6, 7.')
                     ->end()
                 ->end()
+                ->scalarNode('provider')
+                    ->defaultNull()
+                    ->info('Service ID (typically a FQCN) of a service implementing CorrelationIdProviderInterface. The implementation is responsible for returning only values that satisfy CorrelationIdValidator::isValid(). Defaults to the built-in CorrelationIdStorage.')
+                ->end()
             ->end()
         ;
     }
 
-    /** @param array{generator: string, uuid_version: int} $config */
+    /** @param array{generator: string, uuid_version: int, provider: null|string} $config */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $services = $container->services();
+        $services = $container->services()
+            ->defaults()
+                ->private()
+        ;
 
         $services->set(CorrelationIdStorage::class)
             ->arg('$generator', service(CorrelationIdGeneratorInterface::class))
@@ -57,14 +61,9 @@ final class CorrelationCoreBundle extends AbstractBundle
         $services->set(UuidCorrelationIdGenerator::class)
             ->arg('$version', UuidVersion::from($config['uuid_version']));
 
-        $builder->setAlias(CorrelationIdGeneratorInterface::class, $config['generator'])
-            ->setPublic(false);
-
-        $builder->setAlias(CorrelationIdStorageInterface::class, CorrelationIdStorage::class)
-            ->setPublic(false);
-
-        $builder->setAlias(CorrelationIdProviderInterface::class, CorrelationIdStorage::class)
-            ->setPublic(false);
+        $services->alias(CorrelationIdGeneratorInterface::class, $config['generator']);
+        $services->alias(CorrelationIdStorageInterface::class, CorrelationIdStorage::class);
+        $services->alias(CorrelationIdProviderInterface::class, $config['provider'] ?? CorrelationIdStorage::class);
 
         $services->set(CorrelationConsoleListener::class)
             ->arg('$storage', service(CorrelationIdStorageInterface::class))

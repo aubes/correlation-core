@@ -26,7 +26,7 @@ final class TraceableCorrelationIdStorage implements CorrelationIdStorageInterfa
 
         $this->decorated->set($correlationId);
 
-        if (!$alreadySet && $this->decorated->get() !== null) {
+        if (!$alreadySet) {
             $this->source = 'provided';
         }
     }

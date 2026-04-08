@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Aubes\CorrelationCore\EventListener;
 
+use Aubes\CorrelationCore\Exception\InvalidCorrelationIdException;
 use Aubes\CorrelationCore\Storage\CorrelationIdStorageInterface;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
+use Symfony\Component\Console\Exception\InvalidOptionException;
 use Symfony\Component\Console\Input\InputOption;
 
 final class CorrelationConsoleListener
@@ -33,10 +35,14 @@ final class CorrelationConsoleListener
             $command->addOption('correlation-id', null, InputOption::VALUE_REQUIRED, 'Correlation ID to use for this command');
         }
 
-        $correlationId = $event->getInput()->getParameterOption('--correlation-id', null);
+        $correlationId = $event->getInput()->getParameterOption('--correlation-id', null, true);
 
         if (\is_string($correlationId)) {
-            $this->storage->set($correlationId);
+            try {
+                $this->storage->set($correlationId);
+            } catch (InvalidCorrelationIdException $e) {
+                throw new InvalidOptionException('The "--correlation-id" option must contain only printable ASCII characters (1-255 chars, no control characters).', 0, $e);
+            }
 
             return;
         }

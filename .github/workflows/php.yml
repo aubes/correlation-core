@@ -49,6 +49,9 @@ jobs:
       run: |
         composer update --prefer-dist --no-progress \
           --with "symfony/http-kernel:${{ matrix.symfony-version }}" \
+          --with "symfony/console:${{ matrix.symfony-version }}" \
+          --with "symfony/config:${{ matrix.symfony-version }}" \
+          --with "symfony/dependency-injection:${{ matrix.symfony-version }}" \
           --with "symfony/uid:${{ matrix.symfony-version }}"
 
     - name: Security audit

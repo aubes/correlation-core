@@ -24,14 +24,20 @@ final class CorrelationIdStorage implements CorrelationIdStorageInterface
     /**
      * Idempotent: silently ignored if a correlation ID is already stored.
      * Call reset() first to allow setting a new value.
+     *
+     * The value is always validated, even when an ID is already stored, so
+     * that callers passing an invalid value get an exception instead of a
+     * silent no-op (defense in depth - surfaces caller bugs early).
      */
     public function set(string $correlationId): void
     {
+        CorrelationIdValidator::assert($correlationId);
+
         if ($this->correlationId !== null) {
             return;
         }
 
-        $this->correlationId = CorrelationIdValidator::assert($correlationId);
+        $this->correlationId = $correlationId;
     }
 
     public function getOrGenerate(): string
