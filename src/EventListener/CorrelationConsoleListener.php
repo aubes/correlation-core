@@ -19,13 +19,10 @@ final class CorrelationConsoleListener
     }
 
     /**
-     * Registers the --correlation-id option and ensures a correlation ID
-     * is available for the duration of the command.
+     * Registers --correlation-id on every command and seeds the storage from it.
      *
-     * ConsoleEvents::COMMAND is dispatched before Command::run() binds
-     * the input, so we can safely add the option to the definition here.
-     * The value is read from raw argv via getParameterOption() because
-     * input binding has not occurred yet.
+     * The option is added at runtime so it does not show up in `list` / `help`
+     * output, but it works on any command.
      */
     public function onConsoleCommand(ConsoleCommandEvent $event): void
     {
@@ -35,31 +32,20 @@ final class CorrelationConsoleListener
             $command->addOption('correlation-id', null, InputOption::VALUE_REQUIRED, 'Correlation ID to use for this command');
         }
 
+        // onlyParams: true stops the lookup at the `--` end-of-options marker.
         $correlationId = $event->getInput()->getParameterOption('--correlation-id', null, true);
 
-        if (\is_string($correlationId)) {
-            try {
-                $this->storage->set($correlationId);
-            } catch (InvalidCorrelationIdException $e) {
-                throw new InvalidOptionException('The "--correlation-id" option must contain only printable ASCII characters (1-255 chars, no control characters).', 0, $e);
-            }
-
+        if (!\is_string($correlationId)) {
             return;
         }
 
-        $this->storage->getOrGenerate();
+        try {
+            $this->storage->set($correlationId);
+        } catch (InvalidCorrelationIdException $e) {
+            throw new InvalidOptionException('The "--correlation-id" option must contain only printable ASCII characters (1-255 chars, no control characters).', 0, $e);
+        }
     }
 
-    /**
-     * Resets the correlation ID after the command completes.
-     *
-     * This is necessary for long-running workers that execute multiple commands
-     * in the same process (e.g. queue consumers). Without this reset, the
-     * correlation ID from one command would leak into the next.
-     *
-     * Priority -100 ensures this runs after all other terminate listeners,
-     * so the correlation ID remains available during cleanup handlers.
-     */
     public function onConsoleTerminate(ConsoleTerminateEvent $event): void
     {
         $this->storage->reset();

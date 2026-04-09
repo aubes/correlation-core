@@ -50,6 +50,8 @@ final class CorrelationIdDataCollector extends DataCollector
 
     public function reset(): void
     {
+        // Nullable pre-collection state: reset() runs before collect() fires.
+        // collect() always overwrites with a non-null ID (storage::get() contract).
         $this->data = [
             'correlation_id' => null,
             'source' => null,

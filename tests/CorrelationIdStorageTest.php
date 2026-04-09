@@ -16,83 +16,98 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(InvalidCorrelationIdException::class)]
 class CorrelationIdStorageTest extends TestCase
 {
-    private CorrelationIdStorage $storage;
-
-    protected function setUp(): void
+    public function testGetMaterializesFromGeneratorOnFirstCall(): void
     {
-        $generator = $this->createStub(CorrelationIdGeneratorInterface::class);
-        $generator->method('generate')->willReturn('generated-id');
+        $generator = $this->createMock(CorrelationIdGeneratorInterface::class);
+        $generator->expects(self::once())->method('generate')->willReturn('generated-id');
 
-        $this->storage = new CorrelationIdStorage($generator);
+        $storage = new CorrelationIdStorage($generator);
+
+        self::assertSame('generated-id', $storage->get());
     }
 
-    public function testGetReturnsNullInitially(): void
+    public function testGetIsMemoizedAfterFirstCall(): void
     {
-        self::assertNull($this->storage->get());
+        $generator = $this->createMock(CorrelationIdGeneratorInterface::class);
+        $generator->expects(self::once())->method('generate')->willReturn('generated-id');
+
+        $storage = new CorrelationIdStorage($generator);
+
+        self::assertSame('generated-id', $storage->get());
+        self::assertSame('generated-id', $storage->get());
+        self::assertSame('generated-id', $storage->get());
     }
 
     public function testSetStoresCorrelationId(): void
     {
-        $this->storage->set('abc-123');
+        $storage = $this->createStorage();
 
-        self::assertSame('abc-123', $this->storage->get());
+        $storage->set('abc-123');
+
+        self::assertSame('abc-123', $storage->get());
     }
 
-    public function testSetIsIdempotentOnceResolved(): void
+    public function testSetBeforeGetSkipsGenerator(): void
     {
-        $this->storage->set('first');
-        $this->storage->set('second');
+        $generator = $this->createMock(CorrelationIdGeneratorInterface::class);
+        $generator->expects(self::never())->method('generate');
 
-        self::assertSame('first', $this->storage->get());
+        $storage = new CorrelationIdStorage($generator);
+        $storage->set('explicit-id');
+
+        self::assertSame('explicit-id', $storage->get());
     }
 
-    public function testSetValidatesEvenWhenAlreadyResolved(): void
+    public function testSetOverwritesExistingValue(): void
     {
-        $this->storage->set('first');
+        $storage = $this->createStorage();
 
-        $this->expectException(InvalidCorrelationIdException::class);
-        $this->storage->set("invalid\nvalue");
+        $storage->set('first');
+        $storage->set('second');
+
+        self::assertSame('second', $storage->get());
+    }
+
+    public function testSetOverwritesGeneratedValue(): void
+    {
+        $storage = $this->createStorage('generated-id');
+
+        self::assertSame('generated-id', $storage->get());
+
+        $storage->set('contextual-id');
+
+        self::assertSame('contextual-id', $storage->get());
     }
 
     public function testResetClearsCorrelationId(): void
     {
-        $this->storage->set('abc-123');
-        $this->storage->reset();
+        $storage = $this->createStorage('fresh-id');
 
-        self::assertNull($this->storage->get());
+        $storage->set('abc-123');
+        $storage->reset();
+
+        // After reset, the next get() re-materializes from the generator.
+        self::assertSame('fresh-id', $storage->get());
     }
 
     public function testCanSetAgainAfterReset(): void
     {
-        $this->storage->set('first');
-        $this->storage->reset();
-        $this->storage->set('second');
+        $storage = $this->createStorage();
 
-        self::assertSame('second', $this->storage->get());
-    }
+        $storage->set('first');
+        $storage->reset();
+        $storage->set('second');
 
-    public function testGetOrGenerateGeneratesWhenEmpty(): void
-    {
-        $result = $this->storage->getOrGenerate();
-
-        self::assertSame('generated-id', $result);
-        self::assertSame('generated-id', $this->storage->get());
-    }
-
-    public function testGetOrGenerateReturnsExistingIdWithoutGenerating(): void
-    {
-        $this->storage->set('existing-id');
-
-        $result = $this->storage->getOrGenerate();
-
-        self::assertSame('existing-id', $result);
+        self::assertSame('second', $storage->get());
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidCorrelationIdProvider')]
     public function testSetRejectsInvalidCorrelationId(string $value): void
     {
+        $storage = $this->createStorage();
+
         $this->expectException(InvalidCorrelationIdException::class);
-        $this->storage->set($value);
+        $storage->set($value);
     }
 
     /**
@@ -113,16 +128,39 @@ class CorrelationIdStorageTest extends TestCase
 
     public function testSetAcceptsValidCorrelationId(): void
     {
-        $this->storage->set('valid-correlation-id-123');
+        $storage = $this->createStorage();
 
-        self::assertSame('valid-correlation-id-123', $this->storage->get());
+        $storage->set('valid-correlation-id-123');
+
+        self::assertSame('valid-correlation-id-123', $storage->get());
     }
 
     public function testSetAcceptsMaxLengthCorrelationId(): void
     {
+        $storage = $this->createStorage();
         $id = \str_repeat('a', 255);
-        $this->storage->set($id);
 
-        self::assertSame($id, $this->storage->get());
+        $storage->set($id);
+
+        self::assertSame($id, $storage->get());
+    }
+
+    public function testGetValidatesGeneratedValueAndThrowsOnBrokenGenerator(): void
+    {
+        $generator = $this->createStub(CorrelationIdGeneratorInterface::class);
+        $generator->method('generate')->willReturn("broken\nvalue");
+
+        $storage = new CorrelationIdStorage($generator);
+
+        $this->expectException(InvalidCorrelationIdException::class);
+        $storage->get();
+    }
+
+    private function createStorage(string $generatedId = 'generated-id'): CorrelationIdStorage
+    {
+        $generator = $this->createStub(CorrelationIdGeneratorInterface::class);
+        $generator->method('generate')->willReturn($generatedId);
+
+        return new CorrelationIdStorage($generator);
     }
 }

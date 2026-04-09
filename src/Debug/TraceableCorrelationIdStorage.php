@@ -15,33 +15,21 @@ final class TraceableCorrelationIdStorage implements CorrelationIdStorageInterfa
     ) {
     }
 
-    public function get(): ?string
+    public function get(): string
     {
-        return $this->decorated->get();
+        $result = $this->decorated->get();
+
+        // If no one has set or read a value before this call, the decorated
+        // storage just materialized one via the generator. Record that fact.
+        $this->source ??= 'generated';
+
+        return $result;
     }
 
     public function set(string $correlationId): void
     {
-        $alreadySet = $this->decorated->get() !== null;
-
         $this->decorated->set($correlationId);
-
-        if (!$alreadySet) {
-            $this->source = 'provided';
-        }
-    }
-
-    public function getOrGenerate(): string
-    {
-        $alreadySet = $this->decorated->get() !== null;
-
-        $result = $this->decorated->getOrGenerate();
-
-        if (!$alreadySet) {
-            $this->source = 'generated';
-        }
-
-        return $result;
+        $this->source = 'provided';
     }
 
     public function getSource(): ?string

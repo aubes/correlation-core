@@ -38,15 +38,11 @@ final class CorrelationCoreBundle extends AbstractBundle
                         ->thenInvalid('Invalid uuid_version %s: accepted values are 4, 6, 7.')
                     ->end()
                 ->end()
-                ->scalarNode('provider')
-                    ->defaultNull()
-                    ->info('Service ID (typically a FQCN) of a service implementing CorrelationIdProviderInterface. The implementation is responsible for returning only values that satisfy CorrelationIdValidator::isValid(). Defaults to the built-in CorrelationIdStorage.')
-                ->end()
             ->end()
         ;
     }
 
-    /** @param array{generator: string, uuid_version: int, provider: null|string} $config */
+    /** @param array{generator: string, uuid_version: int} $config */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $services = $container->services()
@@ -63,7 +59,7 @@ final class CorrelationCoreBundle extends AbstractBundle
 
         $services->alias(CorrelationIdGeneratorInterface::class, $config['generator']);
         $services->alias(CorrelationIdStorageInterface::class, CorrelationIdStorage::class);
-        $services->alias(CorrelationIdProviderInterface::class, $config['provider'] ?? CorrelationIdStorage::class);
+        $services->alias(CorrelationIdProviderInterface::class, CorrelationIdStorage::class);
 
         $services->set(CorrelationConsoleListener::class)
             ->arg('$storage', service(CorrelationIdStorageInterface::class))

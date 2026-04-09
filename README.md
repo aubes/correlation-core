@@ -7,38 +7,47 @@ Core bundle for correlation ID management: storage, generator, and shared interf
 - PHP >= 8.2
 - Symfony 6.4 / 7.4 / 8.x
 
+## Contract
+
+The core of this bundle is one invariant: **`CorrelationIdProviderInterface::get()` always returns a valid, non-null string, for the entire lifetime of a request or command**.
+
+- `CorrelationIdStorage` is `final`, self-materializes via the configured generator on first `get()`, and memoizes the result.
+- `set()` validates its input and throws `InvalidCorrelationIdException` on invalid values. Last write wins.
+- `reset()` clears the stored ID between contexts (`ResetInterface`).
+
+Downstream consumers trust the value without null checks or re-validation.
+
 ## Interfaces
 
 ### `CorrelationIdProviderInterface`
 
-Read-only access to the current correlation ID. Inject this in your services when you only need to read the ID.
+Read-only access. Inject this in your services when you only need to read the current ID.
 
 ```php
 use Aubes\CorrelationCore\Storage\CorrelationIdProviderInterface;
 
-class MyService
+final class MyService
 {
     public function __construct(private readonly CorrelationIdProviderInterface $provider) {}
 
     public function doSomething(): void
     {
-        $correlationId = $this->provider->get(); // returns ?string
+        $correlationId = $this->provider->get(); // guaranteed non-null, valid string
     }
 }
 ```
 
+> **Note**: do not implement this interface yourself. The bundle relies on `CorrelationIdStorage` being the single source of truth. If you need to seed the ID from a specific context, write a listener that calls `$storage->set(...)` (see "Extension points" below).
+
 ### `CorrelationIdStorageInterface`
 
-Full access: read, write, and reset. Extends `CorrelationIdProviderInterface` and Symfony's `ResetInterface`.
+Full access: read, write, and reset. Extends `CorrelationIdProviderInterface` and `ResetInterface`.
 
 ```php
-public function get(): ?string;          // current ID, or null if not yet resolved
-public function set(string $id): void;  // idempotent - no-op if an ID is already stored
-public function getOrGenerate(): string; // returns current ID, or generates and stores one
-public function reset(): void;          // clears the stored ID (called between contexts)
+public function get(): string;
+public function set(string $id): void; // throws InvalidCorrelationIdException on invalid input
+public function reset(): void;
 ```
-
-`set()` is intentionally idempotent: once a correlation ID is stored for a context, it cannot be overwritten. This prevents accidental ID changes mid-request.
 
 ### `CorrelationIdGeneratorInterface`
 
@@ -52,12 +61,18 @@ One implementation is provided:
 |-------|--------|----------|
 | `UuidCorrelationIdGenerator` | UUID v7 string | Default - human-readable, time-ordered |
 
-## Custom generator
+## Extension points
+
+There are exactly two ways to customize how correlation IDs are produced:
+
+### 1. Swap the generator
+
+Replace the default UUID v7 generator with your own implementation:
 
 ```php
 use Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface;
 
-class MyGenerator implements CorrelationIdGeneratorInterface
+final class MyGenerator implements CorrelationIdGeneratorInterface
 {
     public function generate(): string
     {
@@ -74,29 +89,19 @@ correlation_core:
 
 > **Note**: the service referenced by `generator` **must** implement `Aubes\CorrelationCore\Generator\CorrelationIdGeneratorInterface`.
 
-## Custom provider
+### 2. Seed the ID from a custom context
 
-By default, `CorrelationIdProviderInterface` is served by the built-in `CorrelationIdStorage`. You can override it with any custom service:
+Inject `CorrelationIdStorageInterface` into your own listener or middleware and call `$storage->set($id)` before the first downstream read. Any `set()` wins over the generator fallback.
 
 ```php
-use Aubes\CorrelationCore\Storage\CorrelationIdProviderInterface;
+use Aubes\CorrelationCore\Exception\InvalidCorrelationIdException;
 
-final class CustomTraceIdProvider implements CorrelationIdProviderInterface
-{
-    public function get(): ?string
-    {
-        return Span::getCurrent()->getContext()->getTraceId() ?: null;
-    }
+try {
+    $storage->set($idFromExternalSource);
+} catch (InvalidCorrelationIdException) {
+    // source untrusted: fall back to the generator by doing nothing
 }
 ```
-
-```yaml
-# config/packages/correlation_core.yaml
-correlation_core:
-    provider: App\CustomTraceIdProvider
-```
-
-> **Note**: the service referenced by `provider` **must** implement `Aubes\CorrelationCore\Storage\CorrelationIdProviderInterface`.
 
 ## Console commands
 
@@ -111,12 +116,6 @@ php bin/console app:process-orders --correlation-id=01JQWXYZ...
 ```
 
 If provided, the value is validated (printable ASCII, max 255 chars) before being stored. If omitted, a UUID v7 is generated.
-
-## Worker / long-running processes
-
-`CorrelationIdStorage` implements `ResetInterface`, so the ID from one request never leaks into the next when running under a persistent runtime (FrankenPHP, RoadRunner).
-
-For console workers (Messenger consumers), the console listener resets the ID after each command terminates - the correlation ID from one job never leaks into the next.
 
 ## License
 
