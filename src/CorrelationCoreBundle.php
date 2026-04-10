@@ -23,7 +23,9 @@ final class CorrelationCoreBundle extends AbstractBundle
 {
     public function configure(DefinitionConfigurator $definition): void
     {
-        $definition->rootNode()
+        /** @var \Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition $rootNode */
+        $rootNode = $definition->rootNode();
+        $rootNode
             ->children()
                 ->scalarNode('generator')
                     ->defaultValue(UuidCorrelationIdGenerator::class)

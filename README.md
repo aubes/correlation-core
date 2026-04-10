@@ -1,11 +1,26 @@
-# Correlation-core
+# aubes/correlation-core
 
-Core bundle for correlation ID management: storage, generator, and shared interfaces.
+Core Symfony bundle for correlation ID management: storage, generator, and shared interfaces.
 
 ## Requirements
 
 - PHP >= 8.2
 - Symfony 6.4 / 7.4 / 8.x
+
+## Installation
+
+```bash
+composer require aubes/correlation-core
+```
+
+Register the bundle in `config/bundles.php`:
+
+```php
+return [
+    // ...
+    Aubes\CorrelationCore\CorrelationCoreBundle::class => ['all' => true],
+];
+```
 
 ## Contract
 
